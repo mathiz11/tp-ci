@@ -2,7 +2,8 @@ version: 2.1
 
 jobs:
   installation:
-    - image: node:lts
+    docker:
+      - image: node:lts
     steps:
       - checkout
       - run: npm ci
@@ -11,20 +12,25 @@ jobs:
       image: ubuntu-2004:202107-02
     steps:
       - checkout
-      - run: docker build -t . mathiz11/node-web-app:snapshot
+      - run: docker build . -t mathiz11/node-web-app:snapshot
       - run: docker run -p 8080:8080 -d mathiz11/node-web-app:snapshot
       - run: curl -i http://localhost:8080
   publication:
-    docker:
-      auth:
-        username: $DOCKERHUB_USERNAME
-        password: $DOCKERHUB_PASSWORD
-      steps:
-        - checkout
-        - run: docker push mathiz11/node-web-app:0.1
-    
+    machine:
+      image: ubuntu-2004:202107-02
+    steps:
+      - checkout
+      - run: docker login --username $DOCKERHUB_USERNAME --password $DOCKERHUB_PASSWORD
+      - run : docker build . -t mathiz11/node-web-app
+      - run: docker push mathiz11/node-web-app
     
 workflows:
-  say-hello-workflow:
+  main-workflow:
     jobs:
-      - app
+      - installation
+      - test:
+          requires:
+            - installation
+      - publication:
+          requires:
+            - test
